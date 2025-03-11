@@ -21,7 +21,9 @@ import {
   Avatar,
   IconButton,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogContent
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -34,12 +36,18 @@ import {
   PersonOutline as PersonIcon,
   Assignment as AssignmentIcon,
   EventNote as EventNoteIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  Description as DescriptionIcon,
+  VisibilityOutlined as VisibilityIcon,
+  PictureAsPdf as PdfIcon,
+  Print as PrintIcon
 } from '@mui/icons-material';
 import { fetchClientById, clearClientSelection } from '../../redux/slices/clientsSlice';
+import { fetchReports, setClientFilter } from '../../redux/slices/reportsSlice';
 import { setDeleteDialog, openModal } from '../../redux/slices/uiSlice';
 import ClientFormDialog from '../../components/clients/ClientFormDialog';
 import DeleteConfirmDialog from '../../components/common/DeleteConfirmDialog';
+import ReportViewer from '../../components/reports/ReportViewer';
 
 /**
  * Client detail page component
@@ -51,19 +59,26 @@ const ClientDetail = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { currentClient, loading, error } = useSelector((state) => state.clients);
+  const { reports, loading: reportsLoading } = useSelector((state) => state.reports);
   
   // Tab state
   const [tabValue, setTabValue] = useState(0);
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [viewReportDialogOpen, setViewReportDialogOpen] = useState(false);
   
   // Fetch client data on component mount
   useEffect(() => {
     dispatch(fetchClientById(id));
+    dispatch(fetchReports());
     
     // Clear selection on unmount
     return () => {
       dispatch(clearClientSelection());
     };
   }, [dispatch, id]);
+  
+  // Filter reports for this client
+  const clientReports = reports.filter(report => report.clientId === Number(id));
   
   // Handle tab change
   const handleTabChange = (event, newValue) => {
@@ -87,6 +102,57 @@ const ClientDetail = () => {
         id: currentClient.id,
         type: 'client'
       }));
+    }
+  };
+
+  // Handle view report
+  const handleViewReport = (reportId) => {
+    setSelectedReportId(reportId);
+    setViewReportDialogOpen(true);
+  };
+
+  // Handle close report viewer
+  const handleCloseReportViewer = () => {
+    setViewReportDialogOpen(false);
+    setSelectedReportId(null);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'completed':
+        return 'success';
+      case 'scheduled':
+        return 'info';
+      case 'pending':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  // Get status text
+  const getStatusText = (status) => {
+    switch(status) {
+      case 'completed':
+        return 'Completado';
+      case 'scheduled':
+        return 'Programado';
+      case 'pending':
+        return 'Pendiente';
+      default:
+        return 'Desconocido';
     }
   };
   
@@ -115,31 +181,6 @@ const ClientDetail = () => {
       technician: 'Carlos Rodríguez',
       status: 'completed',
       notes: 'Se colocaron trampas en puntos críticos.',
-    }
-  ];
-  
-  // Mock reports data
-  const mockReports = [
-    {
-      id: 1,
-      title: 'Informe mensual - Febrero 2025',
-      date: '2025-03-01',
-      author: 'Juan Pérez',
-      status: 'sent',
-    },
-    {
-      id: 2,
-      title: 'Informe mensual - Enero 2025',
-      date: '2025-02-01',
-      author: 'María Gómez',
-      status: 'sent',
-    },
-    {
-      id: 3,
-      title: 'Informe anual 2024',
-      date: '2025-01-15',
-      author: 'Admin',
-      status: 'sent',
     }
   ];
   
@@ -438,74 +479,130 @@ const ClientDetail = () => {
               ))}
             </List>
           )}
-          
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<EventNoteIcon />}
-            >
-              Programar Nuevo Servicio
-            </Button>
-          </Box>
         </Box>
         
         {/* Reports Tab */}
         <Box hidden={tabValue !== 2} sx={{ p: 3 }}>
-          {mockReports.length === 0 ? (
-            <Typography variant="body1" color="text.secondary" align="center">
-              No hay informes para este cliente.
-            </Typography>
+          {reportsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : clientReports.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="body1" color="text.secondary" gutterBottom>
+                No hay informes disponibles para este cliente.
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="primary"
+                startIcon={<DescriptionIcon />}
+                onClick={() => {
+                  dispatch(openModal('createReport'));
+                }}
+                sx={{ mt: 2 }}
+              >
+                Crear Nuevo Informe
+              </Button>
+            </Box>
           ) : (
-            <List>
-              {mockReports.map((report) => (
-                <Paper key={report.id} elevation={1} sx={{ mb: 2, p: 0 }}>
-                  <ListItem
-                    secondaryAction={
-                      <Box>
-                        <IconButton color="primary">
-                          <AssignmentIcon />
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  startIcon={<DescriptionIcon />}
+                  onClick={() => {
+                    dispatch(openModal('createReport'));
+                  }}
+                >
+                  Nuevo Informe
+                </Button>
+              </Box>
+              <Grid container spacing={2}>
+                {clientReports.map((report) => (
+                  <Grid item xs={12} sm={6} md={4} key={report.id}>
+                    <Card 
+                      elevation={2} 
+                      sx={{ 
+                        height: '100%', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        '&:hover': {
+                          boxShadow: 6
+                        },
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleViewReport(report.id)}
+                    >
+                      <CardHeader
+                        avatar={
+                          <Avatar sx={{ bgcolor: 'primary.main' }}>
+                            <DescriptionIcon />
+                          </Avatar>
+                        }
+                        title={report.title}
+                        subheader={formatDate(report.date)}
+                        action={
+                          <Chip 
+                            label={getStatusText(report.status)} 
+                            color={getStatusColor(report.status)}
+                            size="small" 
+                            sx={{ mr: 1 }}
+                          />
+                        }
+                      />
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Técnico: {report.technicianName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Hallazgos: {report.findings.length}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Tratamientos: {report.treatments.length}
+                        </Typography>
+                      </CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                        <IconButton 
+                          size="small"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewReport(report.id);
+                          }}
+                          title="Ver informe"
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                        <IconButton 
+                          size="small"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Generar PDF', report.id);
+                          }}
+                          title="Generar PDF"
+                        >
+                          <PdfIcon />
+                        </IconButton>
+                        <IconButton 
+                          size="small"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Imprimir', report.id);
+                          }}
+                          title="Imprimir"
+                        >
+                          <PrintIcon />
                         </IconButton>
                       </Box>
-                    }
-                  >
-                    <ListItemIcon>
-                      <Avatar sx={{ bgcolor: 'warning.main' }}>
-                        <AssignmentIcon />
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={report.title}
-                      secondary={
-                        <>
-                          <Typography component="span" variant="body2">
-                            Fecha: {new Date(report.date).toLocaleDateString()} • Autor: {report.author}
-                          </Typography>
-                          <br />
-                          <Chip 
-                            label={report.status === 'sent' ? 'Enviado' : 'Borrador'} 
-                            color={report.status === 'sent' ? 'success' : 'warning'} 
-                            size="small" 
-                            sx={{ mt: 1 }}
-                          />
-                        </>
-                      }
-                    />
-                  </ListItem>
-                </Paper>
-              ))}
-            </List>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </>
           )}
-          
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AssignmentIcon />}
-            >
-              Generar Nuevo Informe
-            </Button>
-          </Box>
         </Box>
         
         {/* Payments Tab */}
@@ -516,10 +613,25 @@ const ClientDetail = () => {
         </Box>
       </Paper>
       
-      {/* Client Form Dialog (for edit) */}
-      <ClientFormDialog />
+      {/* Report viewer dialog */}
+      <Dialog
+        open={viewReportDialogOpen}
+        onClose={handleCloseReportViewer}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogContent sx={{ p: 0 }}>
+          <ReportViewer 
+            reportId={selectedReportId} 
+            onClose={handleCloseReportViewer} 
+          />
+        </DialogContent>
+      </Dialog>
       
-      {/* Delete Confirmation Dialog */}
+      {/* Client edit dialog */}
+      <ClientFormDialog mode="edit" />
+      
+      {/* Delete confirmation dialog */}
       <DeleteConfirmDialog />
     </Box>
   );

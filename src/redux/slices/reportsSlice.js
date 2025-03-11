@@ -221,8 +221,7 @@ const mockReports = [
 ];
 
 /**
- * Async thunk for fetching all reports
- * Uses mock data instead of actual API calls
+ * Async thunk para obtener todos los informes
  */
 export const fetchReports = createAsyncThunk(
   'reports/fetchReports',
@@ -293,33 +292,85 @@ export const fetchReports = createAsyncThunk(
 );
 
 /**
- * Async thunk for fetching a single report
- * Uses mock data instead of actual API calls
+ * Async thunk para obtener un informe por ID
  */
 export const fetchReportById = createAsyncThunk(
   'reports/fetchReportById',
-  async (id, { rejectWithValue }) => {
+  async (reportId, { rejectWithValue, getState }) => {
     try {
-      // Simulamos un retraso para simular la llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Buscar el informe por ID
-      const report = mockReports.find(report => report.id === Number(id));
+      // Para fines de demostración, obtenemos el informe de los datos mock
+      // En una implementación real, esto sería una llamada a la API
+      const { reports } = getState().reports;
+      const report = reports.find(r => r.id === reportId);
       
       if (!report) {
-        return rejectWithValue({ message: 'Report not found' });
+        throw new Error(`No se encontró un informe con el ID ${reportId}`);
       }
+      
+      // Simulamos un retraso para simular la llamada a la API
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       return report;
     } catch (error) {
-      return rejectWithValue({ message: 'Failed to fetch report details' });
+      return rejectWithValue(error.message);
     }
   }
 );
 
 /**
- * Async thunk for creating a new report
- * Uses mock data instead of actual API calls
+ * Async thunk para exportar un informe a PDF
+ */
+export const exportReportPdf = createAsyncThunk(
+  'reports/exportReportPdf',
+  async (reportId, { rejectWithValue, getState }) => {
+    try {
+      // Obtener el informe de la store
+      const { reports } = getState().reports;
+      const report = reports.find(r => r.id === reportId);
+      
+      if (!report) {
+        throw new Error(`No se encontró un informe con el ID ${reportId}`);
+      }
+      
+      // En una implementación real, aquí se generaría el PDF
+      // Para fines de demostración, simulamos un retraso
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Aquí se utilizaría la función generateReportPdf de pdfUtils
+      // Pero como estamos en el slice, no podemos usarla directamente
+      // La función real se llama desde el componente
+      
+      return { success: true, reportId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+/**
+ * Async thunk para obtener informes filtrados por cliente
+ */
+export const fetchReportsByClient = createAsyncThunk(
+  'reports/fetchReportsByClient',
+  async (clientId, { rejectWithValue, getState }) => {
+    try {
+      // Para fines de demostración, filtramos los informes de los datos mock
+      // En una implementación real, esto sería una llamada a la API
+      const { reports } = getState().reports;
+      const filteredReports = reports.filter(r => r.clientId === clientId);
+      
+      // Simulamos un retraso para simular la llamada a la API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return filteredReports;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+/**
+ * Async thunk para crear un nuevo informe
  */
 export const createReport = createAsyncThunk(
   'reports/createReport',
@@ -350,8 +401,7 @@ export const createReport = createAsyncThunk(
 );
 
 /**
- * Async thunk for updating a report
- * Uses mock data instead of actual API calls
+ * Async thunk para actualizar un informe
  */
 export const updateReport = createAsyncThunk(
   'reports/updateReport',
@@ -386,8 +436,7 @@ export const updateReport = createAsyncThunk(
 );
 
 /**
- * Async thunk for deleting a report
- * Uses mock data instead of actual API calls
+ * Async thunk para eliminar un informe
  */
 export const deleteReport = createAsyncThunk(
   'reports/deleteReport',
@@ -414,107 +463,52 @@ export const deleteReport = createAsyncThunk(
 );
 
 /**
- * Async thunk for generating a PDF report
- * Uses mock data instead of actual API calls
+ * Slice de Redux para gestionar los informes
  */
-export const generatePdfReport = createAsyncThunk(
-  'reports/generatePdf',
-  async ({ id, options = {} }, { rejectWithValue }) => {
-    try {
-      // Simulamos un retraso para simular la generación del PDF
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Buscar el informe por ID
-      const report = mockReports.find(report => report.id === Number(id));
-      
-      if (!report) {
-        return rejectWithValue({ message: 'Report not found' });
-      }
-      
-      // En un entorno real, aquí estaríamos generando el PDF y descargándolo
-      // Al ser datos mock, solo simulamos que el proceso se ha completado con éxito
-      console.log(`Mock PDF generation for report ${id} - ${report.title}`);
-      
-      return { id, success: true };
-    } catch (error) {
-      return rejectWithValue({ message: 'Failed to generate PDF' });
-    }
-  }
-);
-
-/**
- * Async thunk for scheduling automated report delivery
- * Uses mock data instead of actual API calls
- */
-export const scheduleReportDelivery = createAsyncThunk(
-  'reports/scheduleDelivery',
-  async ({ id, schedule }, { rejectWithValue }) => {
-    try {
-      // Simulamos un retraso para simular la llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      // Buscar el informe por ID
-      const reportIndex = mockReports.findIndex(report => report.id === Number(id));
-      
-      if (reportIndex === -1) {
-        return rejectWithValue({ message: 'Report not found' });
-      }
-      
-      // Actualizar el informe con la programación
-      const updatedReport = {
-        ...mockReports[reportIndex],
-        schedule: schedule,
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Actualizar en el array mock
-      mockReports[reportIndex] = updatedReport;
-      
-      return updatedReport;
-    } catch (error) {
-      return rejectWithValue({ message: 'Failed to schedule report delivery' });
-    }
-  }
-);
-
-/**
- * Reports slice for managing report state
- */
-const reportsSlice = createSlice({
-  name: 'reports',
-  initialState: {
-    reports: mockReports.slice(0, 10), // Cargar los primeros 10 informes inicialmente
-    currentReport: null,
-    totalReports: mockReports.length,
-    totalPages: Math.ceil(mockReports.length / 10),
-    loading: false,
-    pdfGenerating: false,
-    error: null,
-    currentPage: 1,
-    pageSize: 10,
-    searchTerm: '',
-    filters: {},
-    scheduledReports: mockReports.filter(report => report.status === 'scheduled'), // Precargar informes programados
+const initialState = {
+  reports: mockReports,
+  filteredReports: [],
+  selectedReport: null,
+  loading: false,
+  exportLoading: false,
+  error: null,
+  searchTerm: '',
+  pageSize: 10,
+  currentPage: 0,
+  filters: {
+    status: 'all',
+    type: 'all',
+    dateRange: null
   },
+  clientFilter: null
+};
+
+export const reportsSlice = createSlice({
+  name: 'reports',
+  initialState,
   reducers: {
     setSearchTerm: (state, action) => {
       state.searchTerm = action.payload;
-      state.currentPage = 1; // Reset to first page on new search
+      state.currentPage = 0; // Reset to first page on new search
     },
     setPageSize: (state, action) => {
       state.pageSize = action.payload;
-      state.currentPage = 1; // Reset to first page on page size change
+      state.currentPage = 0; // Reset to first page on page size change
     },
     setCurrentPage: (state, action) => {
       state.currentPage = action.payload;
     },
     setFilters: (state, action) => {
       state.filters = action.payload;
-      state.currentPage = 1; // Reset to first page on filter change
+      state.currentPage = 0; // Reset to first page on filter change
+    },
+    setClientFilter: (state, action) => {
+      state.clientFilter = action.payload;
+      state.currentPage = 0; // Reset to first page on filter change
     },
     clearReportSelection: (state) => {
-      state.currentReport = null;
-    },
+      state.selectedReport = null;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -541,14 +535,44 @@ const reportsSlice = createSlice({
       })
       .addCase(fetchReportById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentReport = action.payload;
+        state.selectedReport = action.payload;
       })
       .addCase(fetchReportById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'An unknown error occurred';
+        state.error = action.payload;
+      });
+    
+    // Handle exportReportPdf
+    builder
+      .addCase(exportReportPdf.pending, (state) => {
+        state.exportLoading = true;
+        state.error = null;
       })
-      
-      // Handle createReport
+      .addCase(exportReportPdf.fulfilled, (state) => {
+        state.exportLoading = false;
+      })
+      .addCase(exportReportPdf.rejected, (state, action) => {
+        state.exportLoading = false;
+        state.error = action.payload;
+      });
+    
+    // Handle fetchReportsByClient
+    builder
+      .addCase(fetchReportsByClient.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchReportsByClient.fulfilled, (state, action) => {
+        state.loading = false;
+        state.filteredReports = action.payload;
+      })
+      .addCase(fetchReportsByClient.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+    
+    // Handle createReport
+    builder
       .addCase(createReport.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -561,9 +585,10 @@ const reportsSlice = createSlice({
       .addCase(createReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'An unknown error occurred';
-      })
-      
-      // Handle updateReport
+      });
+    
+    // Handle updateReport
+    builder
       .addCase(updateReport.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -576,16 +601,17 @@ const reportsSlice = createSlice({
           state.reports[index] = action.payload;
         }
         // Update currentReport if it's the same
-        if (state.currentReport?.id === action.payload.id) {
-          state.currentReport = action.payload;
+        if (state.selectedReport?.id === action.payload.id) {
+          state.selectedReport = action.payload;
         }
       })
       .addCase(updateReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'An unknown error occurred';
-      })
-      
-      // Handle deleteReport
+      });
+    
+    // Handle deleteReport
+    builder
       .addCase(deleteReport.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -594,44 +620,11 @@ const reportsSlice = createSlice({
         state.loading = false;
         state.reports = state.reports.filter(report => report.id !== action.payload);
         state.totalReports -= 1;
-        if (state.currentReport?.id === action.payload) {
-          state.currentReport = null;
+        if (state.selectedReport?.id === action.payload) {
+          state.selectedReport = null;
         }
       })
       .addCase(deleteReport.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'An unknown error occurred';
-      })
-      
-      // Handle generatePdfReport
-      .addCase(generatePdfReport.pending, (state) => {
-        state.pdfGenerating = true;
-        state.error = null;
-      })
-      .addCase(generatePdfReport.fulfilled, (state) => {
-        state.pdfGenerating = false;
-      })
-      .addCase(generatePdfReport.rejected, (state, action) => {
-        state.pdfGenerating = false;
-        state.error = action.payload?.message || 'An unknown error occurred';
-      })
-      
-      // Handle scheduleReportDelivery
-      .addCase(scheduleReportDelivery.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(scheduleReportDelivery.fulfilled, (state, action) => {
-        state.loading = false;
-        // Add to scheduled reports if not already there
-        const index = state.scheduledReports.findIndex(r => r.id === action.payload.id);
-        if (index !== -1) {
-          state.scheduledReports[index] = action.payload;
-        } else {
-          state.scheduledReports.push(action.payload);
-        }
-      })
-      .addCase(scheduleReportDelivery.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'An unknown error occurred';
       });
@@ -643,7 +636,8 @@ export const {
   setPageSize, 
   setCurrentPage, 
   setFilters, 
-  clearReportSelection
+  setClientFilter,
+  clearReportSelection 
 } = reportsSlice.actions;
 
 export default reportsSlice.reducer;

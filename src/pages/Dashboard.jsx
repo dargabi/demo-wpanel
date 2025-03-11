@@ -24,7 +24,6 @@ import {
   Tooltip as MuiTooltip
 } from '@mui/material';
 import {
-  MonetizationOn as MoneyIcon,
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   BugReport as BugIcon,
@@ -233,7 +232,7 @@ const Dashboard = () => {
       
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Paper
             elevation={2}
             sx={{
@@ -262,7 +261,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Paper
             elevation={2}
             sx={{
@@ -291,7 +290,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Paper
             elevation={2}
             sx={{
@@ -317,47 +316,6 @@ const Dashboard = () => {
             <Typography variant="body2" color="text.secondary">
               Informes pendientes
             </Typography>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              borderRadius: 2,
-              height: '100%',
-              border: '1px solid rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
-                <MoneyIcon />
-              </Avatar>
-              <Typography variant="h6" component="div">
-                Ingresos
-              </Typography>
-            </Box>
-            <Typography variant="h4" component="div" fontWeight="bold">
-              {loading ? (
-                <CircularProgress size={24} />
-              ) : (
-                `${stats.revenueThisMonth.toLocaleString()} €`
-              )}
-            </Typography>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                color: stats.revenueGrowth >= 0 ? 'success.main' : 'error.main'
-              }}
-            >
-              <Typography variant="body2">
-                {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth}% respecto al período anterior
-              </Typography>
-            </Box>
           </Paper>
         </Grid>
       </Grid>

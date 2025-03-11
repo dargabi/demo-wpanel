@@ -24,7 +24,9 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogContent
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -39,8 +41,9 @@ import {
   Print as PrintIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import { fetchReports } from '../../redux/slices/reportsSlice';
+import { fetchReports, exportReportPdf } from '../../redux/slices/reportsSlice';
 import { openModal, setDeleteDialog } from '../../redux/slices/uiSlice';
+import ReportViewer from '../../components/reports/ReportViewer';
 
 /**
  * Reports page component that displays all pest control reports
@@ -57,6 +60,7 @@ const Reports = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedReportId, setSelectedReportId] = useState(null);
+  const [viewReportDialogOpen, setViewReportDialogOpen] = useState(false);
   
   // Fetch reports on component mount
   useEffect(() => {
@@ -111,15 +115,13 @@ const Reports = () => {
   // Handle view report
   const handleViewReport = () => {
     handleMenuClose();
-    // Implementation for viewing a report
-    console.log('View report:', selectedReportId);
+    setViewReportDialogOpen(true);
   };
   
   // Handle download report
   const handleDownloadReport = () => {
     handleMenuClose();
-    // Implementation for downloading a report
-    console.log('Download report:', selectedReportId);
+    dispatch(exportReportPdf(selectedReportId));
   };
   
   // Handle send report
@@ -145,17 +147,30 @@ const Reports = () => {
       open: true
     }));
   };
+
+  // Handle closing report viewer dialog
+  const handleCloseReportViewer = () => {
+    setViewReportDialogOpen(false);
+    setSelectedReportId(null);
+  };
+
+  // Handle row click to view report
+  const handleRowClick = (reportId) => {
+    setSelectedReportId(reportId);
+    setViewReportDialogOpen(true);
+  };
   
   // Filter reports based on search term and tab selection
   const filteredReports = reports.filter(report => {
     const matchesSearch = 
       report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.serviceType.toLowerCase().includes(searchTerm.toLowerCase());
+      (report.type && report.type.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (tabValue === 0) return matchesSearch; // All
-    if (tabValue === 1) return matchesSearch && report.status === 'draft'; // Drafts
-    if (tabValue === 2) return matchesSearch && report.status === 'sent'; // Sent
+    if (tabValue === 1) return matchesSearch && report.status === 'pending'; // Pending
+    if (tabValue === 2) return matchesSearch && report.status === 'scheduled'; // Scheduled
+    if (tabValue === 3) return matchesSearch && report.status === 'completed'; // Completed
     return matchesSearch;
   });
   
@@ -164,198 +179,211 @@ const Reports = () => {
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
   
-  // Mock data for demonstration purposes
-  const mockReports = [
-    {
-      id: 1,
-      title: 'Informe mensual - Febrero 2025',
-      clientName: 'Supermercados XYZ',
-      serviceType: 'Fumigación general',
-      date: '2025-03-01',
-      status: 'sent',
-      technician: 'Juan Pérez'
-    },
-    {
-      id: 2,
-      title: 'Informe de inspección - Oficinas ABC',
-      clientName: 'Corporación ABC',
-      serviceType: 'Inspección de roedores',
-      date: '2025-02-25',
-      status: 'draft',
-      technician: 'María Gómez'
-    },
-    {
-      id: 3,
-      title: 'Tratamiento de termitas - Residencial Vista',
-      clientName: 'Residencial Vista',
-      serviceType: 'Control de termitas',
-      date: '2025-02-20',
-      status: 'sent',
-      technician: 'Carlos Rodríguez'
-    },
-    {
-      id: 4,
-      title: 'Informe trimestral - Hotel Esplendor',
-      clientName: 'Hotel Esplendor',
-      serviceType: 'Servicio trimestral',
-      date: '2025-02-15',
-      status: 'draft',
-      technician: 'Ana Martínez'
-    },
-    {
-      id: 5,
-      title: 'Control de plagas - Restaurante El Sabor',
-      clientName: 'Restaurante El Sabor',
-      serviceType: 'Control general de plagas',
-      date: '2025-02-10',
-      status: 'sent',
-      technician: 'Juan Pérez'
+  // Get status chip color
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'completed':
+        return 'success';
+      case 'scheduled':
+        return 'info';
+      case 'pending':
+        return 'warning';
+      default:
+        return 'default';
     }
-  ];
+  };
+
+  // Get status text in Spanish
+  const getStatusText = (status) => {
+    switch(status) {
+      case 'completed':
+        return 'Completado';
+      case 'scheduled':
+        return 'Programado';
+      case 'pending':
+        return 'Pendiente';
+      default:
+        return 'Desconocido';
+    }
+  };
+
+  // Get report type text in Spanish
+  const getReportTypeText = (type) => {
+    if (!type) return '';
+    switch(type) {
+      case 'monthly':
+        return 'Mensual';
+      case 'quarterly':
+        return 'Trimestral';
+      case 'bimonthly':
+        return 'Bimestral';
+      case 'emergency':
+        return 'Emergencia';
+      case 'proposal':
+        return 'Propuesta';
+      case 'scheduled':
+        return 'Programado';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
   
   return (
-    <Box>
-      {/* Header with title and actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Informes
-        </Typography>
-        
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleCreateReport}
-        >
-          Nuevo Informe
-        </Button>
-      </Box>
-      
-      {/* Search and filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Buscar informes..."
-              value={searchTerm}
-              onChange={handleSearch}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
-              }}
-              size="small"
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                startIcon={<FilterListIcon />}
-                sx={{ mr: 1 }}
-              >
-                Filtros
-              </Button>
-              
-              <Button
-                variant="outlined"
-                startIcon={<PdfIcon />}
-              >
-                Exportar
-              </Button>
-            </Box>
-          </Grid>
+    <Box sx={{ p: 3 }}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h4" component="h1">
+              Informes
+            </Typography>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />}
+              onClick={handleCreateReport}
+            >
+              Nuevo Informe
+            </Button>
+          </Box>
         </Grid>
-      </Paper>
-      
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          aria-label="reports tabs"
-        >
-          <Tab label="Todos" />
-          <Tab label="Borradores" />
-          <Tab label="Enviados" />
-        </Tabs>
-      </Box>
-      
-      {/* Reports table */}
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Box sx={{ p: 3 }}>
-            <Typography color="error">{error}</Typography>
-          </Box>
-        ) : (
-          <>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Título</TableCell>
-                    <TableCell>Cliente</TableCell>
-                    <TableCell>Tipo de Servicio</TableCell>
-                    <TableCell>Fecha</TableCell>
-                    <TableCell>Técnico</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell align="center">Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {mockReports.map((report) => (
-                    <TableRow key={report.id} hover>
-                      <TableCell>{report.title}</TableCell>
-                      <TableCell>{report.clientName}</TableCell>
-                      <TableCell>{report.serviceType}</TableCell>
-                      <TableCell>{new Date(report.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{report.technician}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={report.status === 'draft' ? 'Borrador' : 'Enviado'}
-                          color={report.status === 'draft' ? 'warning' : 'success'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleMenuOpen(e, report.id)}
-                        >
-                          <MoreVertIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+        
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <TextField
+                variant="outlined"
+                size="small"
+                placeholder="Buscar informes..."
+                value={searchTerm}
+                onChange={handleSearch}
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ maxWidth: 500, mr: 2 }}
+              />
+              <IconButton>
+                <FilterListIcon />
+              </IconButton>
+            </Box>
             
-            {/* Pagination */}
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25]}
-              component="div"
-              count={filteredReports.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-            />
-          </>
-        )}
-      </Paper>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleTabChange}
+              indicatorColor="primary"
+              textColor="primary"
+              sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
+            >
+              <Tab label="Todos" />
+              <Tab label="Pendientes" />
+              <Tab label="Programados" />
+              <Tab label="Completados" />
+            </Tabs>
+            
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Título</TableCell>
+                        <TableCell>Cliente</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Técnico</TableCell>
+                        <TableCell>Estado</TableCell>
+                        <TableCell align="right">Acciones</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedReports.map((report) => (
+                        <TableRow 
+                          key={report.id}
+                          hover
+                          onClick={() => handleRowClick(report.id)}
+                          sx={{ 
+                            cursor: 'pointer',
+                            '&:last-child td, &:last-child th': { border: 0 }
+                          }}
+                        >
+                          <TableCell component="th" scope="row">
+                            {report.title}
+                          </TableCell>
+                          <TableCell>{report.clientName}</TableCell>
+                          <TableCell>{getReportTypeText(report.type)}</TableCell>
+                          <TableCell>{formatDate(report.date)}</TableCell>
+                          <TableCell>{report.technicianName}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={getStatusText(report.status)} 
+                              color={getStatusColor(report.status)}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton 
+                              size="small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleMenuOpen(event, report.id);
+                              }}
+                            >
+                              <MoreVertIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {paginatedReports.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                            <Typography variant="body1" color="text.secondary">
+                              No se encontraron informes
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                
+                <TablePagination
+                  component="div"
+                  count={filteredReports.length}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  labelRowsPerPage="Filas por página:"
+                  labelDisplayedRows={({ from, to, count }) => 
+                    `${from}-${to} de ${count}`
+                  }
+                />
+              </>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
       
-      {/* Actions menu */}
+      {/* Menu de acciones */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -367,17 +395,17 @@ const Reports = () => {
           </ListItemIcon>
           <ListItemText>Ver informe</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleEditReport}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Editar</ListItemText>
+        </MenuItem>
         <MenuItem onClick={handleDownloadReport}>
           <ListItemIcon>
             <DownloadIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Descargar PDF</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleSendReport}>
-          <ListItemIcon>
-            <SendIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Enviar informe</ListItemText>
+          <ListItemText>Descargar</ListItemText>
         </MenuItem>
         <MenuItem onClick={handlePrintReport}>
           <ListItemIcon>
@@ -385,19 +413,31 @@ const Reports = () => {
           </ListItemIcon>
           <ListItemText>Imprimir</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleEditReport}>
+        <MenuItem onClick={handleSendReport}>
           <ListItemIcon>
-            <EditIcon fontSize="small" />
+            <SendIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Editar</ListItemText>
+          <ListItemText>Enviar por email</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleDeleteReport}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
-          <ListItemText sx={{ color: 'error.main' }}>Eliminar</ListItemText>
+          <ListItemText>Eliminar</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Diálogo para visualizar informe */}
+      <Dialog
+        open={viewReportDialogOpen}
+        onClose={handleCloseReportViewer}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogContent sx={{ p: 0 }}>
+          <ReportViewer reportId={selectedReportId} onClose={handleCloseReportViewer} />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

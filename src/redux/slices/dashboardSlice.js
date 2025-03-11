@@ -17,9 +17,7 @@ const getMockDashboardStats = (timeFrame) => {
     totalClients: Math.round(145 * (multiplier * 0.8 + 0.2)),
     activeServices: Math.round(42 * multiplier),
     completedServices: Math.round(128 * multiplier),
-    pendingReports: Math.round(17 * multiplier),
-    revenueThisMonth: Math.round(15800 * multiplier),
-    revenueGrowth: 12.4 * (multiplier > 1 ? 0.8 : multiplier)
+    pendingReports: Math.round(17 * multiplier)
   };
 };
 
@@ -196,9 +194,7 @@ const dashboardSlice = createSlice({
       totalClients: 0,
       activeServices: 0,
       completedServices: 0,
-      pendingReports: 0,
-      revenueThisMonth: 0,
-      revenueGrowth: 0
+      pendingReports: 0
     },
     pestDistribution: [],
     recentActivities: [],

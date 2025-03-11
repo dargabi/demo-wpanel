@@ -1,0 +1,113 @@
+/* Estilos específicos para impresión y exportación de PDF */
+
+@media print {
+  /* Ocultar elementos que no deben aparecer en la impresión */
+  .non-printable {
+    display: none !important;
+  }
+  
+  /* Asegurar que el contenido imprimible sea visible */
+  .printable-content, 
+  .printable-content * {
+    visibility: visible !important;
+  }
+  
+  /* Ajustar el contenido para la página */
+  .printable-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  /* Evitar que los elementos se corten entre páginas */
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+  
+  /* Forzar salto de página */
+  .page-break-after {
+    page-break-after: always;
+  }
+  
+  /* Asegurar que las imágenes no se desborden */
+  img {
+    max-width: 100% !important;
+  }
+  
+  /* Ajustar tamaños de texto */
+  h1 {
+    font-size: 24pt !important;
+  }
+  
+  h2 {
+    font-size: 20pt !important;
+  }
+  
+  h3, h4, h5 {
+    font-size: 16pt !important;
+  }
+  
+  p, li, td, th {
+    font-size: 12pt !important;
+  }
+  
+  /* Asegurar que los colores se impriman */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Ajustar márgenes de la página */
+  @page {
+    margin: 1cm;
+  }
+  
+  /* Asegurar que el fondo blanco sea impreso */
+  body {
+    background-color: white !important;
+  }
+  
+  /* Mejorar contraste de texto */
+  * {
+    color: #000 !important;
+  }
+  
+  /* Ajustar chips para impresión */
+  .MuiChip-root {
+    border: 1px solid #999 !important;
+  }
+  
+  /* Añadir bordes más visibles */
+  .MuiPaper-root {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Clases específicas para el contenido imprimible */
+.report-section {
+  margin-bottom: 20px;
+  page-break-inside: avoid;
+}
+
+.report-header {
+  border-bottom: 2px solid #2196f3;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.report-footer {
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.report-image {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+}
